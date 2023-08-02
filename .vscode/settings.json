@@ -4,9 +4,11 @@
         "fastify",
         "healthcheck",
         "Jooby",
+        "nodemon",
         "pino",
         "plusplus",
         "preinstall",
+        "solomorion",
         "txack"
     ]
 }
