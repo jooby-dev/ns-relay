@@ -1,5 +1,22 @@
 # Jooby NS Relay
 
+
+## Deployment
+
+```sh
+# build
+docker build . -t solomorion/ns-relay
+
+# deploy
+docker run --interactive --tty --rm --publish 3000:3000 --name ns-relay solomorion/ns-relay
+
+# publish
+docker push solomorion/ns-relay
+```
+
+
+## Environment
+
 List of available environment variables.
 
 | name                | default value | description                                                                                               |

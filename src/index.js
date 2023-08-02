@@ -13,6 +13,11 @@ const fastify = Fastify({
 });
 
 
+process
+    .on('SIGINT', () => {
+        process.exit();
+    });
+
 fastify.register(FastifySSEPlugin);
 fastify.register(cors, {});
 fastify.register(routes);
