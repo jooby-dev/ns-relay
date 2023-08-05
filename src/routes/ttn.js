@@ -1,6 +1,6 @@
 // sse listeners
 // {'001a7988170187ca': [{requestId: {request, reply, messageId}}]}
-const subscribers = new Map();
+const subscribersMap = new Map();
 
 // only binary data in hex
 // {'001a7988170187ca': '2003'}
@@ -10,25 +10,21 @@ const payloads = new Map();
 export default async fastify => {
     fastify.post(
         '/webhook',
-        {
-            schema: {
-                querystring: {
-                    event: {type: 'string'}
-                }
-            }
-        },
         async request => {
-            const {event} = request.query;
             const {body} = request;
-            const {devEui: eui} = body.deviceInfo;
-            const euiSubscribers = subscribers.get(eui);
+            const {device_id: id} = body.end_device_ids;
+            const subscribers = subscribersMap.get(id);
 
-            if ( euiSubscribers ) {
-                let payload = body.data;
+            if ( subscribers ) {
+                let payload = body?.downlink_message?.frm_payload;
 
                 // extend downlink message from buffer
-                if ( event === 'txack' ) {
-                    payload = payloads.get(eui)?.pop();
+                if ( payload ) {
+                    payload = payloads.get(id)?.pop();
+                    // should be used only once and then cleared
+                    payloads.delete(id);
+                } else {
+                    payload = body?.uplink_message?.frm_payload;
                 }
 
                 // convert to hex
@@ -36,16 +32,12 @@ export default async fastify => {
                     payload = Buffer.from(payload, 'base64').toString('hex');
                 }
 
-                // should be used only once and then cleared
-                payloads.delete(eui);
-
-                for ( const subscriber of euiSubscribers.values() ) {
+                for ( const subscriber of subscribers.values() ) {
                     subscriber.reply.sse({
                         id: subscriber.messageId++,
                         data: JSON.stringify({
-                            event,
-                            eui,
-                            time: body.time,
+                            id,
+                            time: new Date(body.received_at).getTime(),
                             data: payload,
                             info: body
                         })
@@ -57,15 +49,15 @@ export default async fastify => {
     );
 
     fastify.post(
-        '/:eui/messages',
+        '/:id/messages',
         {},
         async ( request, reply ) => {
-            const {eui} = request.params;
+            const {id} = request.params;
             const {body} = request;
-            const payload = payloads.get(eui) || [];
+            const payload = payloads.get(id) || [];
 
             payload.push(body.data);
-            payloads.set(eui, payload);
+            payloads.set(id, payload);
 
             reply.send(true);
         }
@@ -81,19 +73,19 @@ export default async fastify => {
             }
         },
         async ( request, reply ) => {
-            const euiList = request.query.eui.split(',');
+            const idList = request.query.id.split(',');
             let messageId = 1;
 
             reply.sse({id: messageId++, event: 'ready', data: true});
 
-            euiList.forEach(eui => {
-                const euiSubscribers = subscribers.get(eui) || new Map();
+            idList.forEach(id => {
+                const subscribers = subscribersMap.get(id) || new Map();
 
-                euiSubscribers.set(request.id, {request, reply, messageId: messageId++});
-                subscribers.set(eui, euiSubscribers);
+                subscribers.set(request.id, {request, reply, messageId: messageId++});
+                subscribers.set(id, subscribers);
 
                 request.socket.on('close', () => {
-                    euiSubscribers.delete(request.id);
+                    subscribers.delete(request.id);
                 });
             });
         }
