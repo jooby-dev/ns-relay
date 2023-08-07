@@ -7,7 +7,7 @@ const subscribers = new Map();
 const payloads = new Map();
 
 
-export default async fastify => {
+export default (fastify, opts, done) => {
     fastify.post(
         '/webhook',
         {
@@ -60,12 +60,12 @@ export default async fastify => {
         '/:eui/messages',
         {},
         async ( request, reply ) => {
-            const {eui} = request.params;
+            const {id} = request.params;
             const {body} = request;
-            const payload = payloads.get(eui) || [];
+            const payload = payloads.get(id) || [];
 
             payload.push(body.data);
-            payloads.set(eui, payload);
+            payloads.set(id, payload);
 
             reply.send(true);
         }
@@ -98,4 +98,6 @@ export default async fastify => {
             });
         }
     );
+
+    done();
 };
