@@ -1,4 +1,9 @@
-const subscribersMap = new Map();
+// sse listeners
+// {'eui-001a798816012b96': [{requestId: {request, reply, messageId}}]}
+const subscribers = new Map();
+
+// only binary data in hex
+// {'eui-001a798816012b96': '2ef3'}
 const payloads = new Map();
 
 
