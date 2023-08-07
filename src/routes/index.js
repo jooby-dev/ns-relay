@@ -1,4 +1,5 @@
 import chirpstack from './chirpstack.js';
+import ttn from './ttn.js';
 
 
 export default async ( fastify, opts, done ) => {
@@ -8,6 +9,7 @@ export default async ( fastify, opts, done ) => {
     });
 
     fastify.register(chirpstack, {prefix: 'chirpstack'});
+    fastify.register(ttn, {prefix: 'ttn'});
 
     done();
 };
