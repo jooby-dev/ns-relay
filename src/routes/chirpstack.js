@@ -57,7 +57,7 @@ export default (fastify, opts, done) => {
     );
 
     fastify.post(
-        '/:eui/messages',
+        '/:id/messages',
         {},
         async ( request, reply ) => {
             const {id} = request.params;
