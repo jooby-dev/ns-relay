@@ -1,10 +1,9 @@
+// eslint-disable-next-line import/no-unresolved
+import {UPLINK, DOWNLINK} from 'jooby-ns-tools/constants/eventTypes.js';
+
 // sse listeners
 // {'eui-001a798816012b96': [{requestId: {request, reply, messageId}}]}
-const subscribers = new Map();
-
-// only binary data in hex
-// {'eui-001a798816012b96': '2ef3'}
-const payloads = new Map();
+const subscribersMap = new Map();
 
 
 export default async fastify => {
@@ -12,31 +11,27 @@ export default async fastify => {
         '/webhook',
         async request => {
             const {body} = request;
+            const {downlink_sent: downlink, uplink_message: uplink} = body;
+
+            if ( !downlink || !uplink ) {
+                // unnecessary events
+                return;
+            }
+
+            const event = uplink ? UPLINK : DOWNLINK;
             const {device_id: id} = body.end_device_ids;
             const subscribers = subscribersMap.get(id);
 
             if ( subscribers ) {
-                let payload = body?.downlink_message?.frm_payload;
-
-                // extend downlink message from buffer
-                if ( payload ) {
-                    payload = payloads.get(id)?.pop();
-                    // should be used only once and then cleared
-                    payloads.delete(id);
-                } else {
-                    payload = body?.uplink_message?.frm_payload;
-                }
-
-                // convert to hex
-                if ( payload ) {
-                    payload = Buffer.from(payload, 'base64').toString('hex');
-                }
+                const base64Payload = event === UPLINK ? uplink.frm_payload : downlink.frm_payload;
+                const payload = Buffer.from(base64Payload, 'base64').toString('hex');
 
                 for ( const subscriber of subscribers.values() ) {
                     subscriber.reply.sse({
                         id: subscriber.messageId++,
                         data: JSON.stringify({
                             id,
+                            event,
                             time: new Date(body.received_at).getTime(),
                             data: payload,
                             info: body
@@ -45,21 +40,6 @@ export default async fastify => {
                     console.log('send sse to', subscriber.messageId);
                 }
             }
-        }
-    );
-
-    fastify.post(
-        '/:id/messages',
-        {},
-        async ( request, reply ) => {
-            const {id} = request.params;
-            const {body} = request;
-            const payload = payloads.get(id) || [];
-
-            payload.push(body.data);
-            payloads.set(id, payload);
-
-            reply.send(true);
         }
     );
 

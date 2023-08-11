@@ -1,3 +1,6 @@
+// eslint-disable-next-line import/no-unresolved
+import {UPLINK, DOWNLINK} from 'jooby-ns-tools/constants/eventTypes.js';
+
 // sse listeners
 // {'001a7988170187ca': [{requestId: {request, reply, messageId}}]}
 const subscribers = new Map();
@@ -5,6 +8,11 @@ const subscribers = new Map();
 // only binary data in hex
 // {'001a7988170187ca': '2003'}
 const payloads = new Map();
+
+const eventMap = {
+    txack: DOWNLINK,
+    up: UPLINK
+};
 
 
 export default (fastify, opts, done) => {
@@ -18,7 +26,13 @@ export default (fastify, opts, done) => {
             }
         },
         async request => {
-            const {event} = request.query;
+            const event = eventMap[request.query.event];
+
+            if ( !event ) {
+                // unnecessary events
+                return;
+            }
+
             const {body} = request;
             const {devEui: eui} = body.deviceInfo;
             const euiSubscribers = subscribers.get(eui);
@@ -27,7 +41,7 @@ export default (fastify, opts, done) => {
                 let payload = body.data;
 
                 // extend downlink message from buffer
-                if ( event === 'txack' ) {
+                if ( event === DOWNLINK ) {
                     payload = payloads.get(eui)?.pop();
                 }
 
