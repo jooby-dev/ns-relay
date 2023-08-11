@@ -5,7 +5,7 @@
 
 ```sh
 # build
-docker build . -t solomorion/ns-relay
+docker build --pull --no-cache --tag solomorion/ns-relay .
 
 # deploy
 docker run --interactive --tty --rm --publish 3000:3000 --name ns-relay solomorion/ns-relay

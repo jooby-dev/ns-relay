@@ -1,6 +1,6 @@
 {
     "name": "ns-relay",
-    "version": "1.0.0",
+    "version": "1.1.0",
     "description": "Jooby NS Relay",
     "main": "index.js",
     "type": "module",
