@@ -8,6 +8,7 @@ const subscribers = new Map();
 // only binary data in hex
 // {'001a7988170187ca': '2003'}
 const payloads = new Map();
+
 const eventMap = {
     txack: DOWNLINK,
     up: UPLINK
